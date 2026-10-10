@@ -1,0 +1,22 @@
+# Private and generated financial data (case-insensitive extensions)
+*.[jJ][sS][oO][nN]
+*.[cC][sS][vV]
+*.[pP][dD][fF]
+
+# Statement and temporary working files
+estatements/
+tmp_files/
+batch_input_config_remaining.json
+*.tmp
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Local environments and secrets
+.venv/
+venv/
+.env
+.idea/
+.vscode/

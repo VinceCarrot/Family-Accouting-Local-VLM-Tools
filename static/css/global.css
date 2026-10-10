@@ -1,0 +1,67 @@
+.layout {
+    display: flex;
+    margin-top: 64px;
+}
+
+.content {
+    margin-left: 220px;
+    padding: 24px;
+    width: 100%;
+    min-height: calc(100vh - 64px);
+    transition: margin-left 0.25s ease;
+    background-color: #f6f8fb;
+    
+}
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+body {
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont,
+                 "Segoe UI", Roboto, "Helvetica Neue", Arial,
+                 "Noto Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+}
+
+
+.main-content {
+    margin-left: 220px;
+    margin-top: 64px;
+
+    height: calc(100vh - 64px);
+    width: calc(100% - 220px);
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* 上下间距 */
+    padding: 12px;
+}
+
+
+
+.main-top {
+    display: block;
+
+    padding: 16px;
+    background-color: #f3f4f6; /* 浅灰 */
+    border-radius: 12px;
+
+    /* 关键：不设高度，让内容撑开 */
+}
+
+
+/* 下区域（数据区） */
+.main-bottom {
+    flex: 1;  /* ⭐ 核心：自动填满剩余空间 */
+
+    padding: 16px;
+    background-color: #f3f4f6;
+    border-radius: 12px;
+
+    overflow: auto;
+}

@@ -1,0 +1,197 @@
+from typing import Dict, Any, Optional, List, Union
+
+import json
+import os   
+from scripts.src.tools.llm_library import ollama_llm, ollama_multi_modal_llm
+
+from scripts.src.tools.prompts import *
+
+
+def dict_substr_lookup(d: Dict[str, Any], query: str) -> Optional[str]:
+    """在字典中查找包含查询字符串的键，并返回对应的值"""
+    if not isinstance(d, dict) or query is None:
+        return None, None
+
+    query = str(query)
+    for key, value in d.items():
+        if not isinstance(key, str):
+            continue
+        if query.lower() in key.lower() or key.lower() in query.lower():
+            return value, key
+        
+    return None, None
+
+def dict_multi_substr_lookup(d: Dict[str, Any], query: str) -> List[Dict[str, Any]]:
+
+    if not isinstance(d, dict) or query is None:
+            return None, None
+
+    for key, value in d.items():
+        if not isinstance(key, str):
+            continue
+
+        key_subs = key.lower().split("_")
+        hit = True
+        for k in key_subs:
+            if k not in query.lower():
+                hit = False
+                break
+        if hit:
+            return value, key
+
+    return None, None
+
+def img_to_json(
+    img_path: str,
+    account: str,
+    keep_alive: Optional[Union[int, str]] = None,
+) -> Optional[Dict[str, Any]]:
+    """将图片路径转换为JSON格式，供LLM分析使用"""
+
+    sys_prompt = IMG_TO_JSON_BASE_PROMPT + IMG_TO_JSON_ACCOUNT_PROMPTS.get(account, "")
+
+    usr_prompt = IMG_TO_JSON_USR_PROMPT
+    # print(f"Calling multi-modal LLM with image: {img_path}")
+    response = ollama_multi_modal_llm(
+        img_path,
+        sys_prompt,
+        usr_prompt,
+        keep_alive=keep_alive,
+    )
+    # print(f"LLM response: {response}")
+    response = response["message"]["content"]
+
+    return response
+    
+
+def imgs_to_json(
+    img_paths: List[str],
+    account: str,
+    keep_alive: Optional[Union[int, str]] = None,
+) -> Optional[List[Dict[str, Any]]]:
+    """将图片路径列表转换为JSON格式，供LLM分析使用"""
+    
+    transactions = []
+    for img_path in img_paths:
+        print(f"Processing image: {img_path}")
+        transaction_part_string = img_to_json(img_path, account, keep_alive=keep_alive)
+        if transaction_part_string:
+            transactions.append(transaction_part_string)
+
+        # print(f"Processed image {img_path}, extracted transactions: {transaction_part_string}")
+        # print(type(transaction_part_string))
+        # print(type(transaction_part_string[0]))  # Debug: Check the type of transactions list after appending each item
+        # break
+    return transactions
+
+
+def transactions_categorization(
+    transaction_lst: List[Dict[str, Any]],
+    categories: Dict[str, Any],
+    category_cache: Dict[str, str],
+    account: str,
+    keep_alive: Optional[Union[int, str]] = None,
+) -> List[Dict[str, Any]]:
+   
+    for transaction in transaction_lst:
+        trans_detail = " ".join(str(transaction.get("transaction_detail") or "").split())
+        transaction["transaction_detail"] = trans_detail
+
+        # print(f"Categorizing transaction: {trans_detail}")
+        # Check if the transaction has already been categorized
+
+
+        account_cat_cache, _ = dict_multi_substr_lookup(category_cache, account)
+
+        matched_cache, matched_keyword = dict_substr_lookup(account_cat_cache or {}, trans_detail)
+        # print(matched_cache)
+        if matched_cache is not None:
+            # print(f"Transaction found in cache, using cached categories for: {trans_detail}")
+            transaction["l0_category"] = matched_cache["l0_category"]
+            transaction["l1_category"] = matched_cache["l1_category"]
+            transaction["l2_category"] = matched_cache["l2_category"]
+            transaction["l3_category"] = matched_cache["l3_category"]
+            transaction["from_cache"] = "Yes"
+            transaction["cache_keyword"] = matched_keyword
+        else:
+            # print("Transaction not found in cache, calling LLM for category")
+            transaction = transaction_categorization(
+                transaction,
+                categories,
+                keep_alive=keep_alive,
+            )
+            transaction["from_cache"] = "No"
+
+    return transaction_lst
+
+
+
+def transaction_categorization(
+    transaction: Dict[str, Any],
+    categories: Dict[str, Any],
+    keep_alive: Optional[Union[int, str]] = None,
+) -> Dict[str, Any]:
+    """对单个交易进行分类，调用 LLM 并将结果合并回 transaction 字典。"""
+
+    trans_detail = transaction.get("transaction_detail")
+    trans_amount = transaction.get("amount")
+    # print(f"Categorizing transaction: {trans_detail} with amount: {trans_amount}")
+    # Build prompts
+    cat_str = json.dumps(categories, ensure_ascii=False)
+    # print(f"Categories mapping: {cat_str}")
+    sys_prompt = TRANSACTION_CATEGORIZATION_BASE_PROMPT.format(categories=cat_str)
+    # Provide categories mapping and the single transaction as the user prompt body
+    usr_prompt = TRANSACTION_CATEGORIZATION_USR_PROMPT.format(trans_detail=trans_detail, trans_amount=trans_amount)
+
+    print(f"Calling LLM for transaction: {trans_detail}", flush=True)
+    # Call LLM
+    response = ollama_llm(
+        sys_prompt,
+        usr_prompt,
+        think=False,
+        keep_alive=keep_alive,
+    )
+    if isinstance(response, dict):
+        message = response.get("message")
+        if isinstance(message, dict) and "thinking" in message:
+            message["thinking"] = "Hidden"
+    print(f"LLM response: {response}", flush=True)
+    # Extract content
+    content = None
+    try:
+        content = response["message"]["content"]
+    except Exception:
+        # Fallback: return transaction with error
+        transaction["l0_category"] = "Unknown"
+        transaction["l1_category"] = "Unknown"
+        transaction["l2_category"] = "Unknown"
+        transaction["l3_category"] = "Unknown"
+
+        return transaction
+
+    # Try to parse JSON content from LLM
+    try:
+        parsed = json.loads(content)
+    except Exception:
+        # If parsing fails, attempt to locate a JSON object substring
+        try:
+            start = content.find('{')
+            end = content.rfind('}')
+            parsed = json.loads(content[start:end+1])
+        except Exception:
+            transaction["l0_category"] = "Unknown"
+            transaction["l1_category"] = "Unknown"
+            transaction["l2_category"] = "Unknown"
+            transaction["l3_category"] = "Unknown"
+
+            return transaction
+
+    # Merge parsed labels back into transaction
+    transaction["l0_category"] = parsed.get("l0")
+    transaction["l1_category"] = parsed.get("l1")
+    transaction["l2_category"] = parsed.get("l2")
+    transaction["l3_category"] = parsed.get("l3")
+    
+
+    return transaction
+

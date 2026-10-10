@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Family Accounting</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+
+    <!-- Global Style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reset.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}">
+    <!-- Module Style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='modules/header/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='modules/sidebar/sidebar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='modules/load_statements/load_statements.css') }}">
+
+
+
+
+<body>
+
+    <!-- <div id="header_container"></div> -->
+    {% include 'modules/header.html' %}
+    <div class="layout">
+        <!-- <div id="sidebar_container"></div> -->
+        {% include 'modules/sidebar.html' %}
+
+       <main class="main-content">
+
+            <!-- 上半区（切换区） -->
+            <div class="main-top">
+
+                <div id="page_load_statements" class="page active">
+                    {% include 'modules/load_statements.html' %}
+                </div>
+ 
+                <div id="page_input_transactions" class="page">
+                    {% include 'modules/input_transactions.html' %}
+                </div>
+
+            </div>
+
+            <!-- 下半区（固定数据区） -->
+            <div class="main-bottom">
+                {% include 'modules/transaction_table.html' %}
+            </div>
+
+        </main>
+
+    </div>
+
+    <script src="{{ url_for('static', filename='js/utils/chart.min.js') }}"></script>
+    
+    <script type="module"
+        src="{{ url_for('static', filename='js/app.js') }}">
+    </script>
+
+</body>
+</html>

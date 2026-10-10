@@ -1,0 +1,16 @@
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 64px;
+    width: 100%;
+    background: linear-gradient(90deg, #e8efff, #f3f6ff);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    z-index: 1000;
+    font-size: 24px;
+    font-weight: bold;
+    color:#303030;
+}

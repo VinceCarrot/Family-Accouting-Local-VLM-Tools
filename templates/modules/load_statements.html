@@ -1,0 +1,65 @@
+<div class="load-statements">
+    <!-- Title -->
+    <div class="load-statements__title">Load Bank Statements</div>
+
+    <!-- Controls Row -->
+    <div class="load-statements__controls">
+        <!-- Account Selection -->
+        <div class="load-statements__section">
+            <label class="load-statements__label">Select Account</label>
+            <select id="account_select" class="load-statements__select">
+                <option value="">-- Choose an account --</option>
+            </select>
+        </div>
+
+        <!-- Year Selection -->
+        <div class="load-statements__section">
+            <label class="load-statements__label">Select Year</label>
+            <select id="year_select" class="load-statements__select">
+                <option value="">-- Choose a year --</option>
+            </select>
+        </div>
+
+        <!-- Month Selection -->
+        <div class="load-statements__section">
+            <label class="load-statements__label">Select Month</label>
+            <select id="month_select" class="load-statements__select">
+                <option value="">-- Choose a month --</option>
+            </select>
+        </div>
+
+        <button type="button" id="statement_folder_button" class="load-statements__folder-button">
+            Change statement folder
+        </button>
+
+        <!-- File Upload Section -->
+        <div class="load-statements__section">
+            <label class="load-statements__label">Load PDF Statement or Transaction JSON</label>
+            <div class="load-statements__upload-area" id="upload_area">
+                <input 
+                    type="file" 
+                    id="pdf_input" 
+                    class="load-statements__file-input"
+                    accept=".pdf,.json,application/pdf,application/json"
+                />
+                <div class="load-statements__upload-icon">📄</div>
+                <div class="load-statements__upload-text">
+                    <p class="load-statements__upload-title">Drop a PDF or transaction JSON file here, or click to select</p>
+                    <p class="load-statements__upload-hint">Supported formats: PDF and JSON</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Section -->
+        <div class="load-statements__section load-statements__section--action">
+            <div class="load-statements__button-group">
+                <button id="process_btn" class="load-statements__button load-statements__button--primary">
+                    Process Statement
+                </button>
+                <button id="save_btn" class="load-statements__button load-statements__button--secondary">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

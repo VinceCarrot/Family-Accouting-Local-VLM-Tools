@@ -1,0 +1,115 @@
+/* =========================
+   Sidebar Module
+   ========================= */
+
+.sidebar {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    height: calc(100vh - 64px);
+    width: 220px;
+    background-color: #ffffff;
+    border-right: 1px solid #e6ebf2;
+
+    padding-top: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+
+    
+    
+    /* transition: width 0.25s ease;
+    overflow: hidden; */
+}
+
+/* 收起状态 */
+/* .sidebar--collapsed {
+    width: 64px;
+} */
+
+/* Toggle 按钮 */
+.sidebar__toggle {
+    display: flex;
+    align-items: center;
+    height: 48px;
+
+    padding-left: 16px;
+    margin-bottom: 8px;
+
+    cursor: pointer;
+}
+
+/* .sidebar__toggle::before {
+    content: "☰";
+    width: 32px;
+    text-align: center;
+    flex-shrink: 0;
+} */
+
+/* Navigation */
+.sidebar__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+/* Item */
+.sidebar__item {
+    display: flex;
+    align-items: center;
+    height: 44px;
+    padding-left: 16px;
+    padding-right: 16px;
+
+    border-radius: 8px;
+
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+
+    color: #4a5a70;
+    overflow: hidden;
+
+    transition: background-color 0.2s ease;
+}
+
+.sidebar__item:hover {
+    background-color: #f0f4ff;
+}
+
+/* Active item */
+.sidebar__item.active {
+    background-color: #e0ebff;
+    color: #2563eb;
+    font-weight: 500;
+}
+
+/* Icon */
+.sidebar__icon {
+    font-size: 18px;
+    width: 32px;
+    min-width: 32px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Text */
+.sidebar__text {
+    font-size: 14px;
+    margin-left: 8px;
+    white-space: nowrap;
+
+    overflow: hidden;
+    transition: opacity 0.25s ease, width 0.25s ease;
+    opacity: 1;
+    width: auto;
+}
+
+/* 收起状态：隐藏文字 */
+/* .sidebar--collapsed .sidebar__text {
+    opacity: 0;
+    width: 0;
+    margin-left: 0;
+    pointer-events: none;
+} */
