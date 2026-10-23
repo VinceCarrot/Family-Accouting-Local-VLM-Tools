@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='modules/header/header.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='modules/sidebar/sidebar.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='modules/load_statements/load_statements.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='modules/batch_load_statements/batch_load_statements.css') }}">
 
 
 
@@ -34,8 +35,8 @@
                     {% include 'modules/load_statements.html' %}
                 </div>
  
-                <div id="page_input_transactions" class="page">
-                    {% include 'modules/input_transactions.html' %}
+                <div id="page_batch_load_statements" class="page">
+                    {% include 'modules/batch_load_statements.html' %}
                 </div>
 
             </div>

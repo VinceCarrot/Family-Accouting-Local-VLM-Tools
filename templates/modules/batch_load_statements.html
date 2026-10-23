@@ -1,0 +1,63 @@
+<div class="batch-load">
+    <!-- ===== Load Bank Statements ===== -->
+    <div class="batch-load__title">Load Bank Statements</div>
+
+    <div class="batch-load__controls">
+        <!-- Year Selection -->
+        <div class="batch-load__section">
+            <label class="batch-load__label">Select Year</label>
+            <select id="batch_year_select" class="batch-load__select">
+                <option value="">-- Choose a year --</option>
+            </select>
+        </div>
+
+        <!-- Month Selection -->
+        <div class="batch-load__section">
+            <label class="batch-load__label">Select Month</label>
+            <select id="batch_month_select" class="batch-load__select">
+                <option value="">-- Choose a month --</option>
+            </select>
+        </div>
+
+        <button type="button" id="batch_folder_button" class="batch-load__folder-button">
+            Change estatements folder
+        </button>
+
+        <!-- Action buttons -->
+        <div class="batch-load__section batch-load__section--action">
+            <div class="batch-load__button-group">
+                <button id="batch_load_btn" class="batch-load__button batch-load__button--primary">
+                    Load PDF
+                </button>
+                <button id="batch_process_btn" class="batch-load__button batch-load__button--secondary">
+                    Batch Process
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== e-Statement List（独立卡片） ===== -->
+    <div class="batch-load__card">
+        <div class="batch-load__list-header">
+            <div class="batch-load__subtitle">e-Statement List</div>
+            <p class="batch-load__hint" id="batch_list_status">No statements loaded yet.</p>
+        </div>
+
+        <div class="batch-load__table-wrapper">
+            <table class="batch-load__table">
+                <thead>
+                    <tr>
+                        <th class="batch-load__col-check"></th>
+                        <th>Year</th>
+                        <th>Month</th>
+                        <th>Account Name</th>
+                        <th>PDF File Name</th>
+                        <th class="batch-load__col-status">Status</th>
+                        <th class="batch-load__col-action">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="batch_list_body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -9,9 +9,9 @@ export function initSidebar() {
       nav: 'tab_nav_load_statements',
       page: 'page_load_statements',
     },
-    tab_nav_input_transactions: {
-      nav: 'tab_nav_input_transactions',
-      page: 'page_input_transactions',
+    tab_nav_batch_load_statements: {
+      nav: 'tab_nav_batch_load_statements',
+      page: 'page_batch_load_statements',
     }
   };
 
@@ -34,6 +34,12 @@ export function initSidebar() {
 
     document.getElementById(selected_tab.page)?.classList.add('active');
     document.getElementById(selected_tab.nav)?.classList.add('active');
+
+    // 共享的底部 transaction table 只在 Load Statements 页显示
+    const mainBottom = document.querySelector('.main-bottom');
+    if (mainBottom) {
+      mainBottom.style.display = selected_tab_id === 'tab_nav_load_statements' ? '' : 'none';
+    }
     // console.log(`✅ Page switched to ${selected_tab_id}`);
   }
 

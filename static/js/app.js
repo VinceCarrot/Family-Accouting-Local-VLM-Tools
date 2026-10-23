@@ -5,6 +5,7 @@ import { loadAllData } from './data_loader.js';
 import { initHeader } from '../modules/header/header.js';
 import { initSidebar } from '../modules/sidebar/sidebar.js';
 import { initLoadStatement } from '../modules/load_statements/load_statements.js';
+import { initBatchLoadStatements } from '../modules/batch_load_statements/batch_load_statements.js';
 // import { initDashboard } from '../modules/dash_board/dash_board.js';
 // import { initMonthlyReport } from '../modules/monthly_report/monthly_report.js';
 // import { initStatistics } from '../modules/statistics/statistics.js';
@@ -72,6 +73,7 @@ async function bootstrap() {
   initHeader();
   initSidebar();
   initLoadStatement();
+  initBatchLoadStatements();
   // initDashboard();
   // initMonthlyReport();
   // initStatistics();

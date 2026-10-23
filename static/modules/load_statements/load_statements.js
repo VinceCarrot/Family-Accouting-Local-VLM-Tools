@@ -56,6 +56,90 @@ function secureAccountFolderName(accountName) {
     .replace(/^[._]+|[._]+$/g, '');
 }
 
+/* =========================================================
+   保存前两步检查（移植自 main_check_transaction_amount_signs.py
+   与 main_check_transaction_dates.py），仅针对勾选 Save to File 的项。
+   ========================================================= */
+const NUMERIC_AMOUNT_RE = /^[+-]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d*)?|\.\d+)$/;
+
+function isNumericAmount(value) {
+  return NUMERIC_AMOUNT_RE.test(String(value ?? '').trim());
+}
+
+function parseAmountValue(value) {
+  // 去掉末尾 " CR" 与千分位逗号后转数字
+  const normalized = String(value ?? '').trim().replace(/\s+CR$/i, '').replace(/,/g, '');
+  if (normalized === '') return NaN;
+  const num = Number(normalized);
+  return Number.isNaN(num) ? NaN : num;
+}
+
+function expectedSignRule(l0Category, l1Category) {
+  const l0 = String(l0Category ?? '').trim().toLowerCase();
+  const l1 = String(l1Category ?? '').trim().toLowerCase().replace(/ /g, '_');
+
+  const rules = [];
+  if (l0 === 'spend') rules.push(['l0=spend', true]);
+  else if (l0 === 'income') rules.push(['l0=income', false]);
+  if (l1 === 'transfer_out') rules.push(['l1=transfer_out', true]);
+  else if (l1 === 'transfer_in') rules.push(['l1=transfer_in', false]);
+
+  if (rules.length === 0) return null;
+  const distinctSigns = new Set(rules.map(rule => rule[1]));
+  if (distinctSigns.size > 1) {
+    return { conflict: true, rules };
+  }
+  return { conflict: false, ruleName: rules[0][0], shouldBeNegative: rules[0][1] };
+}
+
+function describeTransactionRow(tx, rowNo) {
+  const info = [];
+  if (tx.account) info.push(tx.account);
+  if (tx.date) info.push(tx.date);
+  if (tx.transaction_detail) info.push(`"${tx.transaction_detail}"`);
+  return info.length ? `第${rowNo}行 (${info.join(', ')})` : `第${rowNo}行`;
+}
+
+function validateTransactionsBeforeSave(transactions) {
+  const amountErrors = [];
+  const dateErrors = [];
+
+  transactions.forEach((tx, index) => {
+    if (!tx || tx.save_to_file === false) return; // 只检查勾选 Save to File 的项
+    const rowNo = index + 1;
+
+    // ---- 检查二：日期不能为空 ----
+    if (String(tx.date ?? '').trim() === '') {
+      dateErrors.push(`${describeTransactionRow(tx, rowNo)}: 日期为空`);
+    }
+
+    // ---- 检查一：金额格式与符号 ----
+    const rawAmount = tx.amount ?? '';
+    if (!isNumericAmount(rawAmount)) {
+      amountErrors.push(`${describeTransactionRow(tx, rowNo)}: 金额不是有效数字 (${JSON.stringify(String(rawAmount))})`);
+    }
+
+    const amount = parseAmountValue(rawAmount);
+    if (Number.isNaN(amount)) return; // 无法解析，符号检查跳过
+
+    const rule = expectedSignRule(tx.l0_category, tx.l1_category);
+    if (rule && rule.conflict) {
+      amountErrors.push(`${describeTransactionRow(tx, rowNo)}: 符号规则冲突 ${JSON.stringify(rule.rules)}`);
+      return;
+    }
+    if (rule === null || amount === 0) return;
+
+    if ((amount < 0) !== rule.shouldBeNegative) {
+      const expectText = rule.shouldBeNegative ? '应为负数' : '应为正数';
+      amountErrors.push(
+        `${describeTransactionRow(tx, rowNo)}: amount=${JSON.stringify(String(rawAmount))} ${expectText}（规则 ${rule.ruleName}）`
+      );
+    }
+  });
+
+  return { amountErrors, dateErrors };
+}
+
 function getCategoryTree() {
   return window.AppData?.categories || [];
 }
@@ -631,6 +715,23 @@ export function initLoadStatement() {
   async function handleSaveClick() {
     if (!filled_transactions.length) {
       alert("⚠️ No transactions to save");
+      return;
+    }
+
+    // 保存前两步检查：仅针对勾选 Save to File 的项，两步都通过才允许保存
+    const { amountErrors, dateErrors } = validateTransactionsBeforeSave(filled_transactions);
+    if (amountErrors.length || dateErrors.length) {
+      const lines = ['❌ 保存前检查未通过，请修正以下问题后再保存：'];
+      if (amountErrors.length) {
+        lines.push('', `【检查一·金额符号】(${amountErrors.length})`);
+        amountErrors.forEach(msg => lines.push('• ' + msg));
+      }
+      if (dateErrors.length) {
+        lines.push('', `【检查二·日期】(${dateErrors.length})`);
+        dateErrors.forEach(msg => lines.push('• ' + msg));
+      }
+      alert(lines.join('\n'));
+      console.warn('⛔ Save blocked by pre-save checks:', { amountErrors, dateErrors });
       return;
     }
 

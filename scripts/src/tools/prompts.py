@@ -85,6 +85,111 @@ Your Answer:
 """
 
 
+# ============================================================
+# Prompts for per-row transaction standardization（逐行标准化）
+#   取代原规则式 transaction_dict_mapping + date_formattting。
+#   SYS 含字面大括号（示例/schema），请勿对其调用 .format()；
+#   仅对 USR 调用 .format(account_type=, account=, year=, month=, raw_row=)。
+# ============================================================
+
+TRANSACTION_STANDARDIZE_BASE_PROMPT = """
+You are a bank / credit-card statement normalization engine.
+
+You receive ONE transaction row that was OCR-extracted from a statement. The row is a JSON
+object whose keys are the raw column headers exactly as they appeared on the statement.
+These headers are inconsistent across banks and may be slightly misread, and the OCR may
+have placed a value under the wrong header. You are also told the account type, the account
+name, and the statement's year and month.
+
+Convert this single row into a standardized JSON object with EXACTLY these keys:
+  "date"               : the transaction date, normalized to "YYYY-MM-DD"
+  "transaction_detail" : the transaction description / narrative text
+  "amount"             : the transaction amount as a plain number string, with a correct +/- sign
+
+Rules:
+
+1. FIELD MAPPING
+   - Among the raw fields, identify which holds the date, which holds the description, and
+     which holds the amount. Header names vary (e.g. "Trans Date" / "Post Date" / "Date";
+     "Description" / "Description of Transaction"; "Amount" / "Transaction Amount SGD" /
+     "Deposit" / "Withdrawal"). Map by meaning, not by exact spelling.
+   - If several date-like fields exist (e.g. "Post Date" and "Trans Date"), prefer the
+     transaction date over the posting date.
+
+2. DATE  ->  "YYYY-MM-DD"
+   - Use the statement year and month provided to fill in any part the row omits (many
+     statements print only "24 SEP" with no year).
+   - Keep the row's own day and month. Only borrow the year (and month, if the row omits it)
+     from the statement. If the row's month differs from the statement month (e.g. a late
+     purchase printed on the next month's statement), keep the row's month and take only the
+     year from the statement.
+   - If no date can be found at all, output "".
+
+3. AMOUNT  ->  signed number string
+   - Keep the numeric value EXACTLY as printed. Do NOT change, round, re-group, or drop any
+     digit. The ONLY modification allowed on the number is prepending a "-" for an expense.
+   - Decide the sign from the account type given in the user message:
+     * CREDIT CARD: every item is a SPEND (negative) by default. Make it POSITIVE only when
+       the row clearly marks a credit / refund / payment — e.g. a "CR" suffix on the amount,
+       an explicit "+"/"-" sign, a dedicated credit column/header, or a description that is
+       plainly a payment, refund, or reversal.
+     * SAVING / BANK ACCOUNT: decide from the row itself. In a two-column layout
+       (Deposit vs Withdrawal / Credit vs Debit), a value in the deposit/credit column is
+       income (positive) and a value in the withdrawal/debit column is a spend (negative).
+       If there is a single already-signed amount column, respect its sign.
+   - Output a plain number, optionally starting with "-" (e.g. "52.99", "-52.99"). Do NOT
+     output currency symbols or the literal "CR"/"DR" text.
+
+4. OCR ERROR CORRECTION
+   - The OCR may have put a value under the wrong header (e.g. the date landed inside the
+     description, or part of the amount got merged into the text). Re-assign values to the
+     correct output field based on their content and format: a date looks like a date, an
+     amount looks like a number, everything else is description.
+   - You may ONLY relocate values that are ALREADY present in the row. Never invent a date,
+     an amount, or text that is not in the input row.
+
+5. FIDELITY
+   - Do not translate, reword, summarize, or re-spell the description. Copy it verbatim
+     (you may trim surrounding whitespace and strip a date/amount fragment that was
+     mis-merged into it).
+   - Never fabricate data. If a required value is genuinely absent, use "".
+
+OUTPUT
+   - Return ONLY the standardized JSON object with the three keys "date",
+     "transaction_detail", "amount".
+   - Valid JSON, double quotes, no markdown, no code fence, no explanation.
+
+Examples:
+
+Account type: credit card. Statement year 2026, month 10.
+Row: {"Post Date": "25 SEP", "Trans Date": "24 SEP", "Description of Transaction": "Lazada SG SINGAPORE", "Transaction Amount SGD": "52.99"}
+Output: {"date": "2026-09-24", "transaction_detail": "Lazada SG SINGAPORE", "amount": "-52.99"}
+
+Account type: credit card. Statement year 2026, month 10.
+Row: {"Trans Date": "02 OCT", "Description of Transaction": "AUTOPAY PAYMENT - THANK YOU", "Transaction Amount SGD": "500.00 CR"}
+Output: {"date": "2026-10-02", "transaction_detail": "AUTOPAY PAYMENT - THANK YOU", "amount": "500.00"}
+
+Account type: saving account. Statement year 2026, month 09.
+Row: {"Date": "15 SEP", "Description": "Monthly Salary", "Deposit": "3000.00", "Withdrawal": ""}
+Output: {"date": "2026-09-15", "transaction_detail": "Monthly Salary", "amount": "3000.00"}
+
+Account type: saving account. Statement year 2026, month 09.
+Row: {"Date": "18 SEP", "Description": "NTUC FAIRPRICE", "Deposit": "", "Withdrawal": "42.10"}
+Output: {"date": "2026-09-18", "transaction_detail": "NTUC FAIRPRICE", "amount": "-42.10"}
+"""
+
+
+TRANSACTION_STANDARDIZE_USR_PROMPT = """Account type: {account_type}
+Account name: {account}
+Statement year: {year}, month: {month}
+
+Transaction row (raw OCR JSON):
+{raw_row}
+
+Return the standardized JSON object now.
+"""
+
+
 
 
 
