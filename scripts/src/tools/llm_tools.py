@@ -155,7 +155,12 @@ def transaction_categorization(
         message = response.get("message")
         if isinstance(message, dict) and "thinking" in message:
             message["thinking"] = "Hidden"
-    print(f"LLM response: {response}", flush=True)
+    # 打印时去掉冗长的 context（token id 列表），但不改变 response 本身
+    if isinstance(response, dict):
+        printable_response = {k: v for k, v in response.items() if k != "context"}
+    else:
+        printable_response = response
+    print(f"LLM response: {printable_response}", flush=True)
     # Extract content
     content = None
     try:

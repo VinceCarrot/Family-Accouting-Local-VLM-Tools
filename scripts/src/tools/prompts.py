@@ -21,14 +21,19 @@ Rules:
 - Do not infer information that is not explicitly present.
 - Ignore all non-table content.
 
-Output format:
+Output format (STRICT JSON):
 
 [
-    {column_name: value, ...},
-    {column_name: value, ...}
+    {"column_name": "value", "column_name": "value"},
+    {"column_name": "value", "column_name": "value"}
 ]
 
-Return ONLY the Python list.
+- The output MUST be valid JSON.
+- Every key and every string value MUST be wrapped in double quotes (").
+- Do NOT use single quotes. Do NOT leave keys unquoted.
+- Empty cells must be null.
+
+Return ONLY the JSON array.
 No markdown.
 No code block.
 No explanation.

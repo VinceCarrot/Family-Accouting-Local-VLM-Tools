@@ -159,19 +159,70 @@ def str_to_dict(transaction_str: List[str]) -> List[Dict[str, Any]]:
     """将LLM返回的字符串转换为字典列表"""
     transaction_dict_list = []
    
-    page_str_list = ast.literal_eval(str(transaction_str))
+    def _strip_to_json_array(text):
+        """去掉可能的 ``` 围栏/前后杂文本，截取最外层 [...] 区间。"""
+        if not isinstance(text, str):
+            return text
+        s = text.strip()
+        s = re.sub(r"^```[a-zA-Z]*\s*", "", s)
+        s = re.sub(r"\s*```$", "", s).strip()
+        start = s.find("[")
+        end = s.rfind("]")
+        if start != -1 and end != -1 and end > start:
+            s = s[start:end + 1]
+        return s
 
-    for page_str in page_str_list:
+    def _quote_bare_keys(text):
+        """给形如 {Post Date: ...} 的裸键补双引号（模型偶发不加引号时的兜底）。"""
+        return re.sub(
+            r'([{,]\s*)([^"\'\s{}\[\],][^:{}\[\],]*?)\s*:',
+            lambda m: f'{m.group(1)}"{m.group(2).strip()}":',
+            text,
+        )
+
+    def _parse_one_page(page_str):
+        """单页输出解析为 list，依次尝试多种策略，全失败才抛出。"""
+        cleaned = _strip_to_json_array(page_str)
+        # 1) 标准 JSON（双引号键值）
         try:
-            transaction_dicts = json.loads(page_str)
-        except json.JSONDecodeError:
-            transaction_dicts = ast.literal_eval(page_str)
+            return json.loads(cleaned)
+        except Exception:
+            pass
+        # 2) Python 字面量（单引号键值）
+        try:
+            return ast.literal_eval(cleaned)
+        except Exception:
+            pass
+        # 3) 裸键补引号后按 JSON 解析
+        try:
+            return json.loads(_quote_bare_keys(cleaned))
+        except Exception:
+            pass
+        # 4) 裸键补引号后按 Python 字面量解析（可容纳单引号值）
+        return ast.literal_eval(_quote_bare_keys(cleaned))
+
+    # transaction_str 为各页响应字符串组成的列表；兼容传入单个字符串
+    if isinstance(transaction_str, str):
+        page_str_list = [transaction_str]
+    else:
+        page_str_list = list(transaction_str)
+
+    for idx, page_str in enumerate(page_str_list, start=1):
+        try:
+            transaction_dicts = _parse_one_page(page_str)
+        except Exception as e:
+            logger.error(f"Failed to parse OCR page {idx}, skipped. Error: {e}")
+            logger.debug(f"Unparseable page {idx} content: {page_str}")
+            continue
+
         if not isinstance(transaction_dicts, list) or any(
             not isinstance(transaction, dict) for transaction in transaction_dicts
         ):
-            raise ValueError("Each OCR page response must be a list of transaction objects")
+            logger.error(f"OCR page {idx} is not a list of objects, skipped.")
+            continue
+
         transaction_dict_list.extend(transaction_dicts)
-    
+
     return transaction_dict_list
 
 

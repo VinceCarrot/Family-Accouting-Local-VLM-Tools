@@ -19,6 +19,7 @@ from scripts.src.tools.pdf_analyzer import (
     save_transactions_to_cache,
     save_transactions_to_csv,
 )
+from scripts.src.tools.llm_library import ensure_ollama_services
 
 app = Flask(__name__)
 
@@ -60,7 +61,11 @@ def analyze_pdf():
         return jsonify(preprocess_result), 400
     
     temp_file = preprocess_result["file_path"]
-    
+
+    # 点击 process 时确保两个 Ollama 服务（VLM 11434 / 文本 11435）都在线，
+    # 哪个未启动就自动拉起，再进行分析
+    ensure_ollama_services()
+
     try:
         result = analyze(temp_file, account, year, month, AppData)
         return jsonify(result), 200
